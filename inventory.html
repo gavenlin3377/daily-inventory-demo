@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>盘点计划管理 - 日度盘点高值商品 Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; background: #f0f2f5; color: #333; font-size: 14px; min-height: 100vh; }
+        a { text-decoration: none; color: inherit; cursor: pointer; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+
+        /* ========== 顶部导航 ========== */
+        .header { position: fixed; top: 0; left: 0; right: 0; height: 48px; background: #fff; border-bottom: 1px solid #e8e8e8; display: flex; align-items: center; justify-content: space-between; z-index: 100; }
+        .header-left { display: flex; align-items: center; height: 100%; }
+        .logo { display: flex; align-items: center; gap: 8px; padding: 0 12px 0 16px; height: 100%; }
+        .logo-icon { width: 28px; height: 28px; background: #ff6700; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 11px; font-style: italic; letter-spacing: -0.5px; }
+        .logo-text { color: #1f1f1f; font-size: 15px; font-weight: 600; white-space: nowrap; }
+        .header-nav { display: flex; align-items: center; height: 100%; margin-left: 8px; gap: 4px; }
+        .header-nav-item { padding: 4px 12px; display: flex; align-items: center; color: #1677ff; font-size: 13px; cursor: pointer; position: relative; transition: all 0.15s; white-space: nowrap; border-radius: 4px; }
+        .header-nav-item:hover { background: #f0f5ff; }
+        .header-nav-item.active { background: #1677ff; color: #fff; font-weight: 500; }
+        .header-right { display: flex; align-items: center; gap: 16px; padding-right: 20px; }
+        .header-select { display: flex; align-items: center; gap: 4px; color: #666; font-size: 13px; cursor: pointer; padding: 4px 8px; border: 1px solid #e8e8e8; border-radius: 4px; }
+        .header-select:hover { border-color: #1677ff; color: #1677ff; }
+        .header-select svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 2; }
+        .header-user { display: flex; align-items: center; gap: 6px; color: #333; font-size: 13px; cursor: pointer; }
+        .header-user-avatar { width: 28px; height: 28px; background: #e6f4ff; color: #1677ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; }
+
+        /* ========== 左侧边栏 ========== */
+        .sidebar { width: 168px; background: white; border-right: 1px solid #e8e8e8; position: fixed; left: 0; top: 48px; bottom: 0; overflow-y: auto; z-index: 50; }
+        .sidebar-section { margin-top: 4px; }
+        .sidebar-section-title { display: flex; align-items: center; gap: 6px; padding: 9px 12px; font-size: 13px; color: #1f1f1f; font-weight: 500; cursor: pointer; user-select: none; }
+        .sidebar-section-title:hover { background: #f5f5f5; }
+        .sidebar-section-title .arrow { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #999; transition: transform 0.2s; display: inline-block; }
+        .sidebar-section-title.collapsed .arrow { transform: rotate(-90deg); }
+        .sidebar-section-title .icon { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; color: #666; }
+        .sidebar-section-title .icon svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+        .sidebar-children a { display: block; padding: 8px 12px 8px 38px; font-size: 13px; color: #666; cursor: pointer; transition: all 0.1s; line-height: 1.4; }
+        .sidebar-children a:hover { background: #f5f5f5; color: #333; }
+        .sidebar-children a.active { background: #e6f4ff; color: #1677ff; font-weight: 500; }
+
+        /* ========== 主内容 ========== */
+        .main { margin-left: 168px; margin-top: 48px; padding: 16px 20px; min-height: calc(100vh - 48px); }
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .page-title { font-size: 16px; font-weight: 600; color: #1f1f1f; }
+        .btn-primary { height: 32px; padding: 0 16px; background: #1677ff; color: white; border: none; border-radius: 4px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: background 0.2s; white-space: nowrap; }
+        .btn-primary:hover { background: #4096ff; }
+        .btn-primary svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
+        .btn-default { height: 32px; padding: 0 16px; background: white; color: #333; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+        .btn-default:hover { border-color: #1677ff; color: #1677ff; }
+        .card { background: white; border-radius: 4px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.03); }
+
+        /* ========== Tabs ========== */
+        .tabs { display: flex; align-items: flex-end; padding: 0 16px; border-bottom: 1px solid #e8e8e8; }
+        .tab { position: relative; padding: 10px 16px; font-size: 14px; color: #666; cursor: pointer; transition: color 0.15s; user-select: none; }
+        .tab:hover { color: #1677ff; }
+        .tab.active { color: #1677ff; font-weight: 500; }
+        .tab.active::after { content: ''; position: absolute; bottom: -1px; left: 16px; right: 16px; height: 2px; background: #1677ff; border-radius: 1px; }
+
+        /* ========== 筛选 ========== */
+        .filter-area { padding: 16px 16px 8px; }
+        .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 10px; }
+        .filter-item { display: flex; align-items: center; gap: 6px; }
+        .filter-label { font-size: 13px; color: #666; white-space: nowrap; }
+        .filter-input { height: 32px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 0 8px; font-size: 13px; color: #333; outline: none; transition: border-color 0.2s; background: white; }
+        .filter-input:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22,119,255,0.06); }
+        .filter-input::placeholder { color: #bfbfbf; }
+        .filter-select { height: 32px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 0 8px; font-size: 13px; color: #333; outline: none; background: white; cursor: pointer; }
+        .filter-select:focus { border-color: #1677ff; }
+        .filter-actions { display: flex; gap: 8px; margin-left: auto; }
+
+        /* ========== 表格 ========== */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead tr { background: #fafafa; }
+        th { text-align: left; font-weight: 500; color: rgba(0,0,0,0.85); padding: 10px 12px; white-space: nowrap; border-bottom: 1px solid #e8e8e8; border-top: 1px solid #e8e8e8; font-size: 13px; }
+        th.tc { text-align: center; }
+        td { padding: 10px 12px; white-space: nowrap; color: rgba(0,0,0,0.65); border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+        td.tc { text-align: center; }
+        tbody tr:hover { background: #fafafa; }
+        .cell-link { color: #1677ff; cursor: pointer; }
+        .cell-link:hover { color: #69b1ff; }
+
+        /* 操作按钮 */
+        .ops { display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: nowrap; }
+        .op-btn { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; cursor: pointer; white-space: nowrap; border: none; background: none; }
+        .op-execute { background: #fff7e6; color: #d46b08; border: 1px solid #ffd591; }
+        .op-execute:hover { background: #fff1cc; }
+        .op-edit { color: #1677ff; }
+        .op-edit:hover { color: #69b1ff; }
+        .op-view { color: #52c41a; }
+        .op-view:hover { color: #95de64; }
+        .op-check { background: #f0f0f0; color: #666; border: 1px solid #d9d9d9; }
+        .op-check:hover { background: #e8e8e8; }
+        .op-inventory { background: #e6f4ff; color: #1677ff; border: 1px solid #91caff; }
+        .op-inventory:hover { background: #bae0ff; }
+
+        /* 状态 */
+        .st-created { color: #1677ff; }
+        .st-done { color: #52c41a; }
+        .st-progress { color: #faad14; }
+
+        /* ========== 分页 ========== */
+        .pager { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 12px 16px; }
+        .pager-text { font-size: 13px; color: rgba(0,0,0,0.45); }
+        .pager-select { height: 28px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 0 4px; font-size: 13px; background: white; }
+        .pager-btn { min-width: 28px; height: 28px; padding: 0 6px; border: 1px solid #d9d9d9; border-radius: 4px; background: white; color: rgba(0,0,0,0.65); font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+        .pager-btn:hover { border-color: #1677ff; color: #1677ff; }
+        .pager-btn.on { border-color: #1677ff; color: white; background: #1677ff; }
+        .pager-btn:disabled { color: #d9d9d9; cursor: not-allowed; }
+        .pager-input { width: 36px; height: 28px; border: 1px solid #d9d9d9; border-radius: 4px; text-align: center; font-size: 12px; outline: none; }
+
+        /* ========== 空状态 ========== */
+        .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 0; color: #bfbfbf; }
+        .empty svg { width: 64px; height: 64px; margin-bottom: 12px; stroke: #d9d9d9; fill: none; }
+        .empty p { font-size: 14px; }
+
+        /* ========== Toast ========== */
+        .toast-box { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 9999; pointer-events: none; }
+        .toast { padding: 9px 20px; border-radius: 4px; font-size: 14px; box-shadow: 0 3px 10px rgba(0,0,0,0.12); display: none; align-items: center; gap: 8px; pointer-events: auto; }
+        .toast.success { background: #f6ffed; border: 1px solid #b7eb8f; color: #389e0d; }
+        .toast.info { background: #e6f4ff; border: 1px solid #91caff; color: #0958d9; }
+        .toast.show { display: flex; animation: fadeIn .25s ease; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+
+        /* ========== 弹窗 ========== */
+        .mask { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; display: none; align-items: center; justify-content: center; }
+        .mask.show { display: flex; }
+        .dialog { background: white; border-radius: 8px; width: 500px; box-shadow: 0 6px 30px rgba(0,0,0,0.12); }
+        .dialog-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #f0f0f0; }
+        .dialog-head h3 { font-size: 16px; font-weight: 600; color: rgba(0,0,0,0.85); }
+        .dialog-close { background: none; border: none; cursor: pointer; color: #999; font-size: 20px; line-height: 1; }
+        .dialog-close:hover { color: #666; }
+        .dialog-body { padding: 24px; }
+        .form-row { display: flex; align-items: center; margin-bottom: 16px; }
+        .form-label { width: 85px; text-align: right; font-size: 13px; color: rgba(0,0,0,0.65); flex-shrink: 0; padding-right: 8px; }
+        .form-label .req { color: #ff4d4f; margin-right: 2px; }
+        .form-field { flex: 1; }
+        .form-field .filter-input, .form-field .filter-select { width: 100%; }
+        .dialog-foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 12px 24px; border-top: 1px solid #f0f0f0; }
+
+        .hidden { display: none !important; }
+
+        /* Tab样式 */
+        .input-tabs { display: flex; gap: 0; border-bottom: 1px solid #e8e8e8; margin-bottom: 8px; }
+        .input-tab { padding: 6px 16px; font-size: 13px; color: #666; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .input-tab.active { color: #1677ff; border-bottom-color: #1677ff; font-weight: 500; }
+        .input-tab:hover { color: #1677ff; }
+
+        /* 复选框组 */
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 16px; }
+        .checkbox-item { display: flex; align-items: center; gap: 6px; }
+        .checkbox-item input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+        .checkbox-item label { font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer; user-select: none; }
+
+        /* 文本域计数 */
+        .textarea-wrapper { position: relative; }
+        .textarea-counter { position: absolute; bottom: 8px; right: 8px; font-size: 12px; color: #bfbfbf; background: white; padding: 0 4px; }
+    </style>
+</head>
+<body>
+
+<!-- Toast -->
+<div class="toast-box"><div id="toast" class="toast"><span id="ti"></span><span id="tm"></span></div></div>
+
+<!-- ===== 顶部导航 ===== -->
+<header class="header">
+    <div class="header-left">
+        <div class="logo">
+            <div class="logo-icon">mi</div>
+            <span class="logo-text">国际零售工作台</span>
+        </div>
+        <nav class="header-nav">
+            <a class="header-nav-item active">渠道运营_国际</a>
+            <a class="header-nav-item">商品管理</a>
+            <a class="header-nav-item">促销系统</a>
+            <a class="header-nav-item">公告中心</a>
+            <a class="header-nav-item">供需运营</a>
+            <a class="header-nav-item">门店运营工具</a>
+            <a class="header-nav-item">任务中心</a>
+            <a class="header-nav-item">国际数字门店</a>
+        </nav>
+    </div>
+    <div class="header-right">
+        <div class="header-select">
+            <span>中国台湾</span>
+            <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="header-select">
+            <span>简体中文</span>
+            <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="header-user">
+            <div class="header-user-avatar">庞</div>
+            <span>庞宜笛</span>
+        </div>
+    </div>
+</header>
+
+<!-- ===== 左侧边栏 ===== -->
+<aside class="sidebar">
+    <nav>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title" onclick="toggleSidebar(this)">
+                <span class="arrow"></span>
+                <span class="icon"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg></span>
+                调拨管理
+            </div>
+            <div class="sidebar-children">
+                <a>调拨管理</a>
+            </div>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title" onclick="toggleSidebar(this)">
+                <span class="arrow"></span>
+                <span class="icon"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></span>
+                货物盘点
+            </div>
+            <div class="sidebar-children">
+                <a class="active" onclick="showPage('plan')">盘点计划管理</a>
+                <a onclick="showPage('order')">盘点单管理</a>
+                <a>不盘点商品管理</a>
+            </div>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title" onclick="toggleSidebar(this)">
+                <span class="arrow"></span>
+                <span class="icon"><svg viewBox="0 0 24 24"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></span>
+                样机管理
+            </div>
+            <div class="sidebar-children">
+                <a>样机列表</a>
+            </div>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title collapsed" onclick="toggleSidebar(this)">
+                <span class="arrow"></span>
+                <span class="icon"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>
+                良品退仓
+            </div>
+            <div class="sidebar-children" style="display:none"><a>退仓管理</a></div>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title collapsed" onclick="toggleSidebar(this)">
+                <span class="arrow"></span>
+                <span class="icon"><svg viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/></svg></span>
+                国货信品
+            </div>
+            <div class="sidebar-children" style="display:none"><a>信品管理</a></div>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title collapsed" onclick="toggleSidebar(this)">
+                <span class="arrow"></span>
+                <span class="icon"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg></span>
+                国资管理
+            </div>
+            <div class="sidebar-children" style="display:none"><a>资产管理</a></div>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title collapsed" onclick="toggleSidebar(this)">
+                <span class="arrow"></span>
+                <span class="icon"><svg viewBox="0 0 24 24"><path d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg></span>
+                服务管理
+            </div>
+            <div class="sidebar-children" style="display:none"><a>服务列表</a></div>
+        </div>
+    </nav>
+</aside>
+
+<!-- ===== 主内容 ===== -->
+<div class="main">
+    <!-- 盘点计划管理页面 -->
+    <div id="page-plan">
+        <div class="page-header">
+            <h1 class="page-title">盘点计划管理</h1>
+            <button class="btn-primary" onclick="openDialog()">
+                <svg viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                新建计划
+            </button>
+        </div>
+
+    <div class="card">
+        <!-- Tabs: 新增日度盘点 -->
+        <div class="tabs">
+            <div class="tab active" data-tab="daily" onclick="changeTab(this,'daily')">日度盘点</div>
+            <div class="tab" data-tab="good" onclick="changeTab(this,'good')">良品</div>
+            <div class="tab" data-tab="bad" onclick="changeTab(this,'bad')">坏品</div>
+            <div class="tab" data-tab="sample" onclick="changeTab(this,'sample')">样机</div>
+        </div>
+
+        <!-- 筛选 -->
+        <div class="filter-area">
+            <div class="filter-row">
+                <div class="filter-item">
+                    <span class="filter-label">计划名称</span>
+                    <input class="filter-input" style="width:155px" placeholder="请输入计划名称" id="fName">
+                </div>
+                <div class="filter-item">
+                    <span class="filter-label">操作人</span>
+                    <input class="filter-input" style="width:110px" placeholder="请输入操作人" id="fOp">
+                </div>
+                <div class="filter-item">
+                    <span class="filter-label">计划日期</span>
+                    <input type="date" class="filter-input" style="width:135px" id="fDS">
+                    <span style="color:#bfbfbf;font-size:13px;margin:0 2px">至</span>
+                    <input type="date" class="filter-input" style="width:135px" id="fDE">
+                </div>
+                <div class="filter-item">
+                    <span class="filter-label">计划完成类型</span>
+                    <select class="filter-select" style="width:155px" id="fType"><option value="">日度盘点高值商品</option></select>
+                </div>
+                <div class="filter-item">
+                    <span class="filter-label">计划编号</span>
+                    <input class="filter-input" style="width:130px" placeholder="请输入计划编号" id="fCode">
+                </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:4px">
+                <button class="btn-default" onclick="resetF()">重置</button>
+                <button class="btn-primary" onclick="toast('查询条件已应用','success')">查询</button>
+            </div>
+        </div>
+
+        <!-- ====== 日度盘点 Tab ====== -->
+        <div id="p-daily" class="table-wrap">
+            <table><thead><tr>
+                <th>计划编号</th><th>计划名称</th><th>计划类型</th><th class="tc">机构数量</th><th class="tc">盘点已完成机构数量</th><th>状态</th><th>开始日期</th><th>结束日期</th><th>创建人</th><th>创建时间</th><th class="tc">操作</th>
+            </tr></thead><tbody id="tb-daily"></tbody></table>
+            <div class="pager">
+                <span class="pager-text" id="dailyTotal">共 12 条</span>
+                <select class="pager-select"><option>20条/页</option><option>50条/页</option></select>
+                <button class="pager-btn" disabled>&lt;</button>
+                <button class="pager-btn on">1</button>
+                <button class="pager-btn">&gt;</button>
+                <span class="pager-text" style="margin-left:6px">前往</span>
+                <input class="pager-input" value="1">
+                <span class="pager-text">页</span>
+            </div>
+        </div>
+
+        <!-- ====== 良品 Tab ====== -->
+        <div id="p-good" class="table-wrap hidden">
+            <table><thead><tr>
+                <th>计划编号</th><th>计划名称</th><th>计划类型</th><th class="tc">机构数量</th><th class="tc">盘点已完成机构数量</th><th>状态</th><th>开始日期</th><th>结束日期</th><th>创建人</th><th>创建时间</th><th class="tc">操作</th>
+            </tr></thead><tbody id="tb-good"></tbody></table>
+            <div class="pager">
+                <span class="pager-text">共 17 条</span>
+                <select class="pager-select"><option>20条/页</option><option>50条/页</option></select>
+                <button class="pager-btn" disabled>&lt;</button>
+                <button class="pager-btn on">1</button>
+                <button class="pager-btn">&gt;</button>
+                <span class="pager-text" style="margin-left:6px">前往</span>
+                <input class="pager-input" value="1">
+                <span class="pager-text">页</span>
+            </div>
+        </div>
+
+        <!-- 坏品 -->
+        <div id="p-bad" class="table-wrap hidden">
+            <div class="empty">
+                <svg viewBox="0 0 24 24" stroke-width="1"><path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                <p>暂无坏品盘点计划数据</p>
+            </div>
+        </div>
+        <!-- 样机 -->
+        <div id="p-sample" class="table-wrap hidden">
+            <div class="empty">
+                <svg viewBox="0 0 24 24" stroke-width="1"><path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                <p>暂无样机盘点计划数据</p>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- 盘点单管理页面 -->
+    <div id="page-order" class="hidden">
+        <div class="page-header">
+            <h1 class="page-title">盘点单管理</h1>
+        </div>
+
+        <div class="card">
+            <!-- Tabs -->
+            <div class="tabs">
+                <div class="tab active" data-tab="order-daily" onclick="changeOrderTab(this,'order-daily')">日度盘点</div>
+                <div class="tab" data-tab="order-good" onclick="changeOrderTab(this,'order-good')">良品</div>
+                <div class="tab" data-tab="order-bad" onclick="changeOrderTab(this,'order-bad')">坏品</div>
+                <div class="tab" data-tab="order-sample" onclick="changeOrderTab(this,'order-sample')">样机</div>
+            </div>
+
+            <!-- 筛选 -->
+            <div class="filter-area">
+                <div class="filter-row">
+                    <div class="filter-item">
+                        <span class="filter-label">门店类型</span>
+                        <select class="filter-select" style="width:120px" id="ofStoreType"><option value="">请选择门店类型</option><option>直营店</option><option>授权店</option></select>
+                    </div>
+                    <div class="filter-item">
+                        <span class="filter-label">盘点计划ID</span>
+                        <input class="filter-input" style="width:180px" value="PDJH202602030000001" id="ofPlanId">
+                    </div>
+                    <div class="filter-item">
+                        <span class="filter-label">门店名称</span>
+                        <select class="filter-select" style="width:150px" id="ofStoreName"><option value="">请选择门店名称</option></select>
+                    </div>
+                    <div class="filter-item">
+                        <span class="filter-label">盘点状态</span>
+                        <select class="filter-select" style="width:120px" id="ofStatus"><option value="">请选择盘点状态</option><option>已完成</option><option>进行中</option><option>已取消</option></select>
+                    </div>
+                    <div class="filter-item">
+                        <span class="filter-label">开始日期</span>
+                        <input type="date" class="filter-input" style="width:135px" value="2026-02-11" id="ofStartDate">
+                        <span style="color:#bfbfbf;font-size:13px;margin:0 2px">至</span>
+                        <input type="date" class="filter-input" style="width:135px" value="2026-02-16" id="ofEndDate">
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:4px">
+                    <button class="btn-default" onclick="resetOrderF()">重置</button>
+                    <button class="btn-primary" onclick="toast('查询条件已应用','success')">查询</button>
+                </div>
+            </div>
+
+            <!-- 导出按钮 -->
+            <div style="padding:12px 16px;border-bottom:1px solid #e8e8e8;display:flex;gap:8px">
+                <button class="btn-default" onclick="toast('导出盘点报告','info')">盘点报告导出</button>
+                <button class="btn-default" onclick="toast('导出取消原因','info')">取消原因导出</button>
+            </div>
+
+            <!-- 表格 -->
+            <!-- 日度盘点 Tab -->
+            <div id="order-daily" class="table-wrap" style="overflow-x:auto">
+                <table style="min-width:2000px"><thead><tr>
+                    <th>盘点月份</th><th>门店ID</th><th>门店名称</th><th>库存类型</th><th>盘点类型</th><th>盘点单状态</th><th>盘点单号</th><th>是否差异</th><th>损益单号</th><th>库存金额</th><th>实盘金额</th><th>库存数量</th><th>实盘数量</th><th>盘亏金额</th><th>盘亏金额占比</th><th>盘亏数量</th><th>盘亏数量占比</th><th>盘盈金额</th><th>盘盈金额占比</th><th>盘盈数量</th><th>盘盈数量占比</th><th>在途金额</th><th>在途未收货金额</th><th>在途已收货金额</th><th>盘点用时</th><th>盘点开始时间</th><th>盘点结束时间</th><th>库存解锁时间</th><th class="tc">操作</th>
+                </tr></thead><tbody id="tb-order-daily"></tbody></table>
+                <div class="pager">
+                    <span class="pager-text">共 0 条</span>
+                    <select class="pager-select"><option>20条/页</option><option>50条/页</option></select>
+                    <button class="pager-btn" disabled>&lt;</button>
+                    <button class="pager-btn on">1</button>
+                    <button class="pager-btn">&gt;</button>
+                    <span class="pager-text" style="margin-left:6px">前往</span>
+                    <input class="pager-input" value="1">
+                    <span class="pager-text">页</span>
+                </div>
+            </div>
+
+            <!-- 良品 Tab -->
+            <div id="order-good" class="table-wrap hidden" style="overflow-x:auto">
+                <table style="min-width:2000px"><thead><tr>
+                    <th>盘点月份</th><th>门店ID</th><th>门店名称</th><th>库存类型</th><th>盘点类型</th><th>盘点单状态</th><th>盘点单号</th><th>是否差异</th><th>损益单号</th><th>库存金额</th><th>实盘金额</th><th>库存数量</th><th>实盘数量</th><th>盘亏金额</th><th>盘亏金额占比</th><th>盘亏数量</th><th>盘亏数量占比</th><th>盘盈金额</th><th>盘盈金额占比</th><th>盘盈数量</th><th>盘盈数量占比</th><th>在途金额</th><th>在途未收货金额</th><th>在途已收货金额</th><th>盘点用时</th><th>盘点开始时间</th><th>盘点结束时间</th><th>库存解锁时间</th><th class="tc">操作</th>
+                </tr></thead><tbody id="tb-order-good"></tbody></table>
+                <div class="pager">
+                    <span class="pager-text">共 6 条</span>
+                    <select class="pager-select"><option>20条/页</option><option>50条/页</option></select>
+                    <button class="pager-btn" disabled>&lt;</button>
+                    <button class="pager-btn on">1</button>
+                    <button class="pager-btn">&gt;</button>
+                    <span class="pager-text" style="margin-left:6px">前往</span>
+                    <input class="pager-input" value="1">
+                    <span class="pager-text">页</span>
+                </div>
+            </div>
+
+            <div id="order-bad" class="table-wrap hidden">
+                <div class="empty">
+                    <svg viewBox="0 0 24 24" stroke-width="1"><path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                    <p>暂无坏品盘点单数据</p>
+                </div>
+            </div>
+
+            <div id="order-sample" class="table-wrap hidden">
+                <div class="empty">
+                    <svg viewBox="0 0 24 24" stroke-width="1"><path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                    <p>暂无样机盘点单数据</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 新建弹窗 ===== -->
+<div id="dlg" class="mask" onclick="closeDlg(event)">
+    <div class="dialog" onclick="event.stopPropagation()">
+        <div class="dialog-head">
+            <h3>新建日度盘点计划</h3>
+            <button class="dialog-close" onclick="closeDlg()">&times;</button>
+        </div>
+        <div class="dialog-body">
+            <div class="form-row"><div class="form-label"><span class="req">*</span>计划名称</div><div class="form-field"><input class="filter-input" placeholder="名称不可重复,例子:2022年8月27日货品盘点。说明:此标题会作为任务标题发给店长" id="dName"></div></div>
+            <div class="form-row"><div class="form-label"><span class="req">*</span>计划类型</div><div class="form-field"><select class="filter-select" id="dType"><option selected>日度盘点高值商品</option></select></div></div>
+            <div class="form-row"><div class="form-label"><span class="req">*</span>盘点月份</div><div class="form-field"><input type="month" class="filter-input" id="dMonth"></div></div>
+            <div class="form-row"><div class="form-label"><span class="req">*</span>盘点开始日期</div><div class="form-field"><input type="datetime-local" class="filter-input" id="dStart" placeholder="说明:到此时间门店才能操作盘点,只能选择当前时间1.5小时后的时间"></div></div>
+            <div class="form-row"><div class="form-label"><span class="req">*</span>盘点结束日期</div><div class="form-field"><input type="datetime-local" class="filter-input" id="dEnd" placeholder="说明:到此时间若未盘点会锁库,盘点完成才可解锁;月度集中盘点类型,时间只能设置22点-07点"></div></div>
+            <div class="form-row"><div class="form-label">备注</div><div class="form-field"><textarea class="filter-input" style="height:60px;resize:none" placeholder="请输入摘要,最多100个字符" id="dRemark"></textarea></div></div>
+            <div class="form-row"><div class="form-label"><span class="req">*</span>执行对象</div><div class="form-field"><label style="margin-right:16px"><input type="radio" name="dTarget" value="type" checked onchange="toggleTargetType()"> 按门店类型</label><label><input type="radio" name="dTarget" value="store" onchange="toggleTargetType()"> 指定门店</label></div></div>
+            
+            <!-- 按门店类型 -->
+            <div id="targetByType" class="form-row">
+                <div class="form-label"><span class="req">*</span>门店类型</div>
+                <div class="form-field">
+                    <div class="checkbox-group">
+                        <div class="checkbox-item"><input type="checkbox" id="storeType1" value="direct"><label for="storeType1">直营店</label></div>
+                        <div class="checkbox-item"><input type="checkbox" id="storeType2" value="authorized"><label for="storeType2">授权店</label></div>
+                    </div>
+                </div>
+            </div>
+            <div id="targetByType2" class="form-row">
+                <div class="form-label"><span class="req">*</span>门店状态</div>
+                <div class="form-field">
+                    <div class="checkbox-group">
+                        <div class="checkbox-item"><input type="checkbox" id="storeStatus1" value="trial"><label for="storeStatus1">试营业</label></div>
+                        <div class="checkbox-item"><input type="checkbox" id="storeStatus2" value="operating"><label for="storeStatus2">营业中</label></div>
+                        <div class="checkbox-item"><input type="checkbox" id="storeStatus3" value="paused"><label for="storeStatus3">暂停营业</label></div>
+                        <div class="checkbox-item"><input type="checkbox" id="storeStatus4" value="closing"><label for="storeStatus4">闭店中</label></div>
+                        <div class="checkbox-item"><input type="checkbox" id="storeStatus5" value="closed"><label for="storeStatus5">已闭店</label></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 指定门店 -->
+            <div id="targetByStore" class="form-row hidden">
+                <div class="form-label"></div>
+                <div class="form-field">
+                    <div class="input-tabs">
+                        <div class="input-tab active" onclick="switchInputTab(this, 'manual')">手动输入</div>
+                        <div class="input-tab" onclick="switchInputTab(this, 'batch')">批量导入</div>
+                    </div>
+                    <div id="inputManual" class="textarea-wrapper">
+                        <textarea class="filter-input" style="height:100px;resize:none;font-family:monospace;font-size:12px" placeholder="请输入门店id,以英文逗号分隔" id="dStores" maxlength="400" oninput="updateCharCount()"></textarea>
+                        <span class="textarea-counter" id="charCount">0/400</span>
+                    </div>
+                    <div id="inputBatch" class="hidden">
+                        <div style="border:1px dashed #d9d9d9;border-radius:4px;padding:20px;text-align:center;color:#999;font-size:13px">
+                            <p style="margin-bottom:8px">点击上传或拖拽文件到此区域上传</p>
+                            <button class="btn-default" style="height:28px;font-size:12px">选择文件</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="dialog-foot">
+            <button class="btn-default" onclick="closeDlg()">取消</button>
+            <button class="btn-primary" onclick="addPlan()">确定</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== 数据 =====
+var dailyRows = [
+    {id:'PDJH202602060000001',n:'新零售直营管2月日度盘点高值商品',t:'日度盘点高值商品',o:6,c:0,s:'已创建',sd:'2026-02-06 08:00:00',ed:'2026-02-06 22:00:00',u:'凌凌華',ct:'2026-02-06 09:15:32',sc:'st-created'},
+    {id:'PDJH202602050000001',n:'新零售直营管2月5日日度盘点计划',t:'日度盘点高值商品',o:6,c:6,s:'已完成',sd:'2026-02-05 08:00:00',ed:'2026-02-05 22:00:00',u:'凌凌華',ct:'2026-02-05 08:30:21',sc:'st-done'},
+    {id:'PDJH202602040000001',n:'新零售直营管2月4日日度盘点计划',t:'日度盘点高值商品',o:6,c:6,s:'已完成',sd:'2026-02-04 08:00:00',ed:'2026-02-04 22:00:00',u:'凌凌華',ct:'2026-02-04 08:28:45',sc:'st-done'},
+    {id:'PDJH202602030000001',n:'新零售直营管2月3日日度盘点计划',t:'日度盘点高值商品',o:6,c:6,s:'已完成',sd:'2026-02-03 08:00:00',ed:'2026-02-03 22:00:00',u:'凌凌華',ct:'2026-02-03 08:35:10',sc:'st-done'},
+    {id:'PDJH202602020000001',n:'新零售直营管2月2日日度盘点计划',t:'日度盘点高值商品',o:6,c:6,s:'已完成',sd:'2026-02-02 08:00:00',ed:'2026-02-02 22:00:00',u:'凌凌華',ct:'2026-02-02 08:22:18',sc:'st-done'},
+    {id:'PDJH202602010000001',n:'新零售直营管2月1日日度盘点计划',t:'日度盘点高值商品',o:6,c:6,s:'已完成',sd:'2026-02-01 08:00:00',ed:'2026-02-01 22:00:00',u:'凌凌華',ct:'2026-02-01 08:18:55',sc:'st-done'},
+    {id:'PDJH202601310000001',n:'新零售直营管1月31日日度盘点计划',t:'日度盘点高值商品',o:6,c:6,s:'已完成',sd:'2026-01-31 08:00:00',ed:'2026-01-31 22:00:00',u:'吳玉哲',ct:'2026-01-31 08:45:33',sc:'st-done'},
+    {id:'PDJH202601300000001',n:'新零售直营管1月30日日度盘点计划',t:'日度盘点高值商品',o:6,c:6,s:'已完成',sd:'2026-01-30 08:00:00',ed:'2026-01-30 22:00:00',u:'吳玉哲',ct:'2026-01-30 08:52:11',sc:'st-done'},
+    {id:'PDJH202601290000001',n:'新零售直营管1月29日日度盘点计划',t:'日度盘点高值商品',o:4,c:4,s:'已完成',sd:'2026-01-29 08:00:00',ed:'2026-01-29 22:00:00',u:'吳玉哲',ct:'2026-01-29 09:01:28',sc:'st-done'},
+    {id:'PDJH202601280000001',n:'新零售直营管1月28日日度盘点计划',t:'日度盘点高值商品',o:4,c:4,s:'已完成',sd:'2026-01-28 08:00:00',ed:'2026-01-28 22:00:00',u:'吳玉哲',ct:'2026-01-28 08:33:47',sc:'st-done'},
+    {id:'PDJH202601270000001',n:'新零售直营管1月27日日度盘点计划',t:'日度盘点高值商品',o:4,c:4,s:'已完成',sd:'2026-01-27 08:00:00',ed:'2026-01-27 22:00:00',u:'陳玉莉',ct:'2026-01-27 09:10:05',sc:'st-done'},
+    {id:'PDJH202601260000001',n:'新零售直营管1月26日日度盘点计划',t:'日度盘点高值商品',o:4,c:4,s:'已完成',sd:'2026-01-26 08:00:00',ed:'2026-01-26 22:00:00',u:'陳玉莉',ct:'2026-01-26 08:48:22',sc:'st-done'}
+];
+var goodRows = [
+    {id:'PDJH202602030000002',n:'新零售直营管Y26-2月盘点计划',t:'月度集中盘点',o:0,c:0,s:'已创建',sd:'2026-02-11 15:00:00',ed:'2026-02-16 05:00:00',u:'凌凌華',ct:'2026-02-03 14:08:56',sc:'st-created'},
+    {id:'PDJH202601200000001',n:'新零售直营管1月盘点计划',t:'月度集中盘点',o:6,c:6,s:'已完成',sd:'2026-01-20 17:00:00',ed:'2026-01-27 06:00:00',u:'凌凌華',ct:'2025-12-26 10:57:21',sc:'st-done'},
+    {id:'PDJH202512300000001',n:'新零售直营管11月盘点计划',t:'月度集中盘点',o:6,c:6,s:'已完成',sd:'2025-12-30 17:00:00',ed:'2026-01-01 06:00:00',u:'凌凌華',ct:'2025-12-02 11:57:21',sc:'st-done'},
+    {id:'PDJH202511170000001',n:'新零售直营管10月盘点计划',t:'月度集中盘点',o:6,c:6,s:'已完成',sd:'2025-11-17 18:00:00',ed:'2025-12-01 07:00:00',u:'凌凌華',ct:'2025-10-31 18:24:48',sc:'st-done'},
+    {id:'PDJH202510140000001',n:'新零售直营管9月盘点计划',t:'月度集中盘点',o:4,c:4,s:'已完成',sd:'2025-10-14 18:00:00',ed:'2025-10-25 06:00:00',u:'吳玉哲',ct:'2025-10-07 17:18:07',sc:'st-done'},
+    {id:'PDJH202509230000001',n:'202509盘点计划-高雄裕诚',t:'月度集中盘点',o:1,c:1,s:'已完成',sd:'2025-09-23 10:00:00',ed:'2025-10-23 00:00:00',u:'凌凌華',ct:'2025-09-23 08:27:37',sc:'st-done'},
+    {id:'PDJH202508310000001',n:'2025年08盘点',t:'月度集中盘点',o:4,c:4,s:'已完成',sd:'2025-08-31 19:00:00',ed:'2025-09-08 07:00:00',u:'吳玉哲',ct:'2025-08-31 16:24:41',sc:'st-done'},
+    {id:'PDJH202508050000001',n:'2025年07盘点',t:'月度集中盘点',o:3,c:3,s:'已完成',sd:'2025-08-05 20:00:00',ed:'2025-08-06 22:00:00',u:'吳玉哲',ct:'2025-08-05 18:28:11',sc:'st-done'},
+    {id:'PDJH202507310000001',n:'202507信義盘点',t:'月度集中盘点',o:1,c:1,s:'已完成',sd:'2025-07-31 22:00:00',ed:'2025-08-01 07:00:00',u:'陳玉莉',ct:'2025-07-31 19:52:10',sc:'st-done'},
+    {id:'PDJH202507310000002',n:'202507西門盘点',t:'月度集中盘点',o:1,c:1,s:'已完成',sd:'2025-07-31 22:00:00',ed:'2025-08-01 07:00:00',u:'陳玉莉',ct:'2025-07-31 19:48:12',sc:'st-done'},
+    {id:'PDJH202506300000001',n:'20250630西門店月度盘点',t:'月度集中盘点',o:1,c:1,s:'已完成',sd:'2025-06-30 22:00:00',ed:'2025-07-01 07:00:00',u:'吳玉哲',ct:'2025-06-30 20:10:03',sc:'st-done'}
+];
+
+function render(id, data) {
+    var tb = document.getElementById(id);
+    if(!tb) return;
+    var h = '';
+    for(var i=0;i<data.length;i++){
+        var d = data[i];
+        var ops = '';
+        if(d.s==='已创建'){
+            ops += '<span class="op-btn op-edit" onclick="toast(\'编辑: '+d.n+'\',\'info\')">编辑</span>';
+        }
+        ops += '<span class="op-btn op-view" onclick="toast(\'查看: '+d.n+'\',\'info\')">查看</span>';
+        if(d.s==='已完成'){
+            ops += '<span class="op-btn op-inventory" onclick="showPage(\'order\')">盘点</span>';
+        }
+        h += '<tr><td>'+(d.id||'')+'</td><td><a class="cell-link" onclick="toast(\''+d.n+'\',\'info\')">'+d.n+'</a></td><td>'+d.t+'</td><td class="tc">'+d.o+'</td><td class="tc">'+d.c+'</td><td class="'+d.sc+'">'+d.s+'</td><td>'+d.sd+'</td><td>'+d.ed+'</td><td>'+d.u+'</td><td>'+d.ct+'</td><td><div class="ops">'+ops+'</div></td></tr>';
+    }
+    tb.innerHTML = h;
+}
+
+function changeTab(el,name){
+    var tabs=document.querySelectorAll('.tab');
+    for(var i=0;i<tabs.length;i++) tabs[i].classList.remove('active');
+    el.classList.add('active');
+    var ids=['p-daily','p-good','p-bad','p-sample'];
+    for(var j=0;j<ids.length;j++){
+        var p=document.getElementById(ids[j]);
+        if(p){if(ids[j]==='p-'+name) p.classList.remove('hidden'); else p.classList.add('hidden');}
+    }
+}
+
+function toggleSidebar(el){
+    el.classList.toggle('collapsed');
+    var ch=el.nextElementSibling;
+    if(ch) ch.style.display=ch.style.display==='none'?'block':'none';
+}
+
+function toast(msg,type){
+    type=type||'info';
+    var t=document.getElementById('toast'),m=document.getElementById('tm'),ic=document.getElementById('ti');
+    t.className='toast '+type+' show';
+    m.textContent=msg;
+    ic.textContent=type==='success'?'\u2713':'\u2139';
+    setTimeout(function(){t.classList.remove('show')},2200);
+}
+
+function resetF(){
+    var ids=['fName','fOp','fDS','fDE','fType','fCode'];
+    for(var i=0;i<ids.length;i++) document.getElementById(ids[i]).value='';
+    toast('已重置','info');
+}
+
+function toggleTargetType(){
+    var target=document.querySelector('input[name="dTarget"]:checked').value;
+    var byType=document.getElementById('targetByType');
+    var byType2=document.getElementById('targetByType2');
+    var byStore=document.getElementById('targetByStore');
+    if(target==='type'){
+        byType.classList.remove('hidden');
+        byType2.classList.remove('hidden');
+        byStore.classList.add('hidden');
+    }else{
+        byType.classList.add('hidden');
+        byType2.classList.add('hidden');
+        byStore.classList.remove('hidden');
+    }
+}
+
+function switchInputTab(el,type){
+    var tabs=document.querySelectorAll('.input-tab');
+    for(var i=0;i<tabs.length;i++) tabs[i].classList.remove('active');
+    el.classList.add('active');
+    document.getElementById('inputManual').classList.toggle('hidden',type!=='manual');
+    document.getElementById('inputBatch').classList.toggle('hidden',type!=='batch');
+}
+
+function updateCharCount(){
+    var ta=document.getElementById('dStores');
+    var count=ta.value.length;
+    document.getElementById('charCount').textContent=count+'/400';
+}
+
+function openDialog(){
+    document.getElementById('dlg').classList.add('show');
+    toggleTargetType();
+}
+function closeDlg(e){
+    if(e&&e.target!==e.currentTarget)return;
+    document.getElementById('dlg').classList.remove('show');
+    document.getElementById('dName').value='';
+    document.getElementById('dStart').value='';
+    document.getElementById('dEnd').value='';
+    document.getElementById('dMonth').value='';
+    document.getElementById('dRemark').value='';
+    document.getElementById('dStores').value='';
+    updateCharCount();
+    // 重置复选框
+    var checkboxes=document.querySelectorAll('#targetByType input[type="checkbox"], #targetByType2 input[type="checkbox"]');
+    for(var i=0;i<checkboxes.length;i++) checkboxes[i].checked=false;
+    // 重置单选
+    document.querySelector('input[name="dTarget"][value="type"]').checked=true;
+    toggleTargetType();
+}
+function addPlan(){
+    var name=document.getElementById('dName').value;
+    if(!name){toast('请输入计划名称','info');return;}
+    var now=new Date();
+    var ts=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+    var sv=document.getElementById('dStart').value,ev=document.getElementById('dEnd').value;
+    var planId='PDJH'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+String(dailyRows.length+1).padStart(6,'0');
+    dailyRows.unshift({id:planId,n:name,t:'日度盘点高值商品',o:0,c:0,s:'已创建',sd:sv?sv.replace('T',' '):'-',ed:ev?ev.replace('T',' '):'-',u:'庞宜笛',ct:ts,sc:'st-created'});
+    render('tb-daily',dailyRows);
+    document.getElementById('dailyTotal').textContent='共 '+dailyRows.length+' 条';
+    document.getElementById('dlg').classList.remove('show');
+    document.getElementById('dName').value='';
+    document.getElementById('dStart').value='';
+    document.getElementById('dEnd').value='';
+    document.getElementById('dMonth').value='';
+    document.getElementById('dRemark').value='';
+    document.getElementById('dStores').value='';
+    toast('日度盘点计划创建成功','success');
+    var dt=document.querySelector('[data-tab="daily"]');
+    changeTab(dt,'daily');
+}
+
+// ===== 盘点单数据 =====
+var orderRows = [
+    {month:'2月份',storeId:'MITW00006',storeName:'小米之家新北新莊宏匯廣場店',invType:'良品',countType:'月度集中盘点',status:'已完成',orderNo:'PDD202602110000007',hasDiff:'有差异',plNo:'PDSY202602120000001',invAmt:7585973,actAmt:7582221,invQty:3666,actQty:3658,lossAmt:3752,lossAmtPct:0.05,lossQty:8,lossQtyPct:0.22,gainAmt:0,gainAmtPct:0.00,gainQty:0,gainQtyPct:0.00,transitAmt:0.00,transitUnrecv:0.00,transitRecv:0.00,duration:'1小时55分钟',startTime:'2026-02-11 22:11:32',endTime:'2026-02-12 00:06:41',unlockTime:'2026-02-12 00:06:41'},
+    {month:'2月份',storeId:'MITW00005',storeName:'小米之家台北中山美麗華店',invType:'良品',countType:'月度集中盘点',status:'已完成',orderNo:'PDD202602110000008',hasDiff:'有差异',plNo:'PDSY202602150000001',invAmt:11390620,actAmt:11384921,invQty:7964,actQty:7963,lossAmt:5699,lossAmtPct:0.05,lossQty:1,lossQtyPct:0.01,gainAmt:0,gainAmtPct:0.00,gainQty:0,gainQtyPct:0.00,transitAmt:0.00,transitUnrecv:0.00,transitRecv:0.00,duration:'2小时3分钟',startTime:'2026-02-14 22:41:52',endTime:'2026-02-15 00:45:16',unlockTime:'2026-02-15 00:45:16'},
+    {month:'2月份',storeId:'MITW00004',storeName:'小米之家台北西門町店',invType:'良品',countType:'月度集中盘点',status:'已完成',orderNo:'PDD202602110000009',hasDiff:'无差异',plNo:'-',invAmt:9448480,actAmt:9448480,invQty:6390,actQty:6390,lossAmt:0,lossAmtPct:0,lossQty:0,lossQtyPct:0,gainAmt:0,gainAmtPct:0.00,gainQty:0,gainQtyPct:0.00,transitAmt:0.00,transitUnrecv:0.00,transitRecv:0.00,duration:'1小时9分钟',startTime:'2026-02-13 22:22:39',endTime:'2026-02-13 23:31:40',unlockTime:'2026-02-13 23:31:40'},
+    {month:'2月份',storeId:'MITW00003',storeName:'小米之家台中一中店',invType:'良品',countType:'月度集中盘点',status:'已完成',orderNo:'PDD202602110000010',hasDiff:'有差异',plNo:'PDSY202602110000001',invAmt:14385873,actAmt:14383137,invQty:9341,actQty:9335,lossAmt:3031,lossAmtPct:0.02,lossQty:7,lossQtyPct:0.07,gainAmt:295,gainAmtPct:0.00,gainQty:1,gainQtyPct:0.01,transitAmt:0.00,transitUnrecv:0.00,transitRecv:0.00,duration:'1小时59分',startTime:'2026-02-11 20:51:18',endTime:'2026-02-11 22:50:35',unlockTime:'2026-02-11 22:50:35'},
+    {month:'2月份',storeId:'MITW00002',storeName:'小米之家台北信義威秀店',invType:'良品',countType:'月度集中盘点',status:'已完成',orderNo:'PDD202602110000011',hasDiff:'有差异',plNo:'PDSY202602120000002',invAmt:11961453,actAmt:11957439,invQty:8106,actQty:8100,lossAmt:4014,lossAmtPct:0.03,lossQty:6,lossQtyPct:0.07,gainAmt:0,gainAmtPct:0.00,gainQty:0,gainQtyPct:0.00,transitAmt:0.00,transitUnrecv:0.00,transitRecv:0.00,duration:'2小时14分',startTime:'2026-02-11 22:41:50',endTime:'2026-02-12 00:56:49',unlockTime:'2026-02-12 00:56:49'},
+    {month:'2月份',storeId:'MITW00001',storeName:'小米之家台北行天宮店',invType:'良品',countType:'月度集中盘点',status:'已完成',orderNo:'PDD202602110000012',hasDiff:'有差异',plNo:'PDSY202602130000001',invAmt:12327725,actAmt:12324532,invQty:6374,actQty:6367,lossAmt:3193,lossAmtPct:0.03,lossQty:7,lossQtyPct:0.11,gainAmt:0,gainAmtPct:0.00,gainQty:0,gainQtyPct:0.00,transitAmt:0.00,transitUnrecv:0.00,transitRecv:0.00,duration:'1小时38分',startTime:'2026-02-13 20:28:02',endTime:'2026-02-13 22:06:25',unlockTime:'2026-02-13 22:06:25'}
+];
+
+function renderOrder(id, data) {
+    var tb = document.getElementById(id);
+    if(!tb) return;
+    var h = '';
+    for(var i=0;i<data.length;i++){
+        var d = data[i];
+        var lossAmt = d.lossAmt || '-';
+        var lossAmtPct = d.lossAmtPct ? d.lossAmtPct + '%' : '-';
+        var lossQty = d.lossQty || '-';
+        var lossQtyPct = d.lossQtyPct ? d.lossQtyPct + '%' : '-';
+        var gainAmt = d.gainAmt || '-';
+        var gainAmtPct = d.gainAmtPct ? d.gainAmtPct + '%' : '-';
+        var gainQty = d.gainQty || '-';
+        var gainQtyPct = d.gainQtyPct ? d.gainQtyPct + '%' : '-';
+        h += '<tr><td>'+d.month+'</td><td>'+d.storeId+'</td><td>'+d.storeName+'</td><td>'+d.invType+'</td><td>'+d.countType+'</td><td class="st-done">'+d.status+'</td><td>'+d.orderNo+'</td><td>'+(d.hasDiff==='有差异'?'<span style="color:#fa8c16">有差异</span>':'无差异')+'</td><td>'+d.plNo+'</td><td>'+d.invAmt.toLocaleString()+'</td><td>'+d.actAmt.toLocaleString()+'</td><td>'+d.invQty.toLocaleString()+'</td><td>'+d.actQty.toLocaleString()+'</td><td>'+lossAmt+'</td><td>'+lossAmtPct+'</td><td>'+lossQty+'</td><td>'+lossQtyPct+'</td><td>'+gainAmt+'</td><td>'+gainAmtPct+'</td><td>'+gainQty+'</td><td>'+gainQtyPct+'</td><td>'+d.transitAmt.toFixed(2)+'</td><td>'+d.transitUnrecv.toFixed(2)+'</td><td>'+d.transitRecv.toFixed(2)+'</td><td>'+d.duration+'</td><td>'+d.startTime+'</td><td>'+d.endTime+'</td><td>'+d.unlockTime+'</td><td><div class="ops"><span class="op-btn op-view" onclick="toast(\'查看: '+d.orderNo+'\',\'info\')">查看</span><span class="op-btn" style="color:#ff4d4f" onclick="toast(\'取消: '+d.orderNo+'\',\'info\')">取消</span></div></td></tr>';
+    }
+    tb.innerHTML = h;
+}
+
+function showPage(page){
+    var planPage=document.getElementById('page-plan');
+    var orderPage=document.getElementById('page-order');
+    var sidebarLinks=document.querySelectorAll('.sidebar-children a');
+    if(page==='plan'){
+        if(planPage) planPage.classList.remove('hidden');
+        if(orderPage) orderPage.classList.add('hidden');
+        if(sidebarLinks[0]) sidebarLinks[0].classList.add('active');
+        if(sidebarLinks[1]) sidebarLinks[1].classList.remove('active');
+    }else if(page==='order'){
+        if(planPage) planPage.classList.add('hidden');
+        if(orderPage) orderPage.classList.remove('hidden');
+        if(sidebarLinks[0]) sidebarLinks[0].classList.remove('active');
+        if(sidebarLinks[1]) sidebarLinks[1].classList.add('active');
+    }
+}
+
+function changeOrderTab(el,name){
+    var tabs=document.querySelectorAll('#page-order .tab');
+    for(var i=0;i<tabs.length;i++) tabs[i].classList.remove('active');
+    el.classList.add('active');
+    var ids=['order-daily','order-good','order-bad','order-sample'];
+    for(var j=0;j<ids.length;j++){
+        var p=document.getElementById(ids[j]);
+        if(p){if(ids[j]===name) p.classList.remove('hidden'); else p.classList.add('hidden');}
+    }
+}
+
+function resetOrderF(){
+    var ids=['ofStoreType','ofPlanId','ofStoreName','ofStatus','ofStartDate','ofEndDate'];
+    for(var i=0;i<ids.length;i++){
+        var el=document.getElementById(ids[i]);
+        if(el) el.value=el.id==='ofPlanId'?'PDJH202602030000001':(el.id==='ofStartDate'?'2026-02-11':(el.id==='ofEndDate'?'2026-02-16':''));
+    }
+    toast('已重置','info');
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+    render('tb-daily',dailyRows);
+    render('tb-good',goodRows);
+    renderOrder('tb-order-daily',[]); // 日度盘点数据为空
+    renderOrder('tb-order-good',orderRows);
+    toggleTargetType(); // 初始化执行对象显示
+    updateCharCount(); // 初始化字符计数
+});
+</script>
+</body>
+</html>
